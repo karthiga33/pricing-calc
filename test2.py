@@ -546,7 +546,20 @@ Start with "1." immediately:"""
             row = 3
             counter = 1
             rate_str = f"{usd_to_inr:.4f}"
+
+            # Sort rows: EC2 first, then RDS, then others
+            ec2_rows, rds_rows, other_rows = [], [], []
             for i in range(len(data)):
+                svc_upper = str(data.iloc[i, service_idx]).strip().upper()
+                if "EC2" in svc_upper:
+                    ec2_rows.append(i)
+                elif "RDS" in svc_upper or "MYSQL" in svc_upper or "POSTGRESQL" in svc_upper or "MARIADB" in svc_upper or "ORACLE" in svc_upper or "SQL SERVER" in svc_upper:
+                    rds_rows.append(i)
+                else:
+                    other_rows.append(i)
+            sorted_indices = ec2_rows + rds_rows + other_rows
+
+            for i in sorted_indices:
                 full_service = str(data.iloc[i, service_idx]).strip()
                 if not full_service:
                     continue
