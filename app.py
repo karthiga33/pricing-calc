@@ -2,8 +2,20 @@ import streamlit as st
 import pandas as pd
 import tempfile
 import os
+import requests
 from datetime import datetime
 from test2 import CostReportAgent
+
+@st.cache_data(ttl=86400)
+def fetch_usd_to_inr():
+    try:
+        resp = requests.get("https://open.er-api.com/v6/latest/USD", timeout=5)
+        data = resp.json()
+        if data.get("result") == "success":
+            return data["rates"]["INR"]
+    except Exception:
+        pass
+    return 85.50
 
 st.set_page_config(page_title="AWS Cost Estimator (Nova Pro)", page_icon="☁️", layout="wide")
 
@@ -75,11 +87,15 @@ with col1:
     customer_name = st.text_input("Customer Name", placeholder="Enter customer name...")
     region = st.text_input("AWS Region", value="US East (N. Virginia)")
 
+live_rate = fetch_usd_to_inr()
+default_output = customer_name.strip().replace(' ', '_') if customer_name.strip() else ""
+
 with col2:
     st.markdown("### 💰 Pricing Configuration")
-    usd_to_inr = st.number_input("USD to INR Exchange Rate", min_value=0.0, value=85.50, step=0.01, format="%.2f")
+    st.info(f"📡 Live USD → INR rate: ₹{live_rate:.2f} (updated daily)")
+    usd_to_inr = st.number_input("USD to INR Exchange Rate", min_value=0.0, value=live_rate, step=0.01, format="%.2f")
     pricing_link = st.text_input("Pricing Link (Optional)", placeholder="https://calculator.aws/...")
-    output_filename = st.text_input("Output File Name", placeholder="e.g., AWS_Cost_Report")
+    output_filename = st.text_input("Output File Name", value=default_output, placeholder="e.g., AWS_Cost_Report")
 
 st.markdown("---")
 
