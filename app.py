@@ -144,8 +144,8 @@ if generate_btn:
                     st.markdown("### 📊 Report Preview")
                     
                     try:
-                        df_summary = pd.read_excel(result["file"], sheet_name="Summary")
-                        df_services = pd.read_excel(result["file"], sheet_name="AWS Services")
+                        df_summary = pd.read_excel(result["file"], sheet_name="Summary", dtype=str)
+                        df_services = pd.read_excel(result["file"], sheet_name="AWS Services", dtype=str)
                         
                         tab1, tab2 = st.tabs(["💰 Cost Summary", "🔧 AWS Services"])
                         
