@@ -15,6 +15,58 @@ logger = logging.getLogger(__name__)
 NOVA_PRO_MODEL_ID = "us.amazon.nova-pro-v1:0"
 bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
 
+EC2_SPECS_FALLBACK = {
+    "t2.nano": {"vCPUs": 1, "MemoryGiB": 0.5}, "t2.micro": {"vCPUs": 1, "MemoryGiB": 1},
+    "t2.small": {"vCPUs": 1, "MemoryGiB": 2}, "t2.medium": {"vCPUs": 2, "MemoryGiB": 4},
+    "t2.large": {"vCPUs": 2, "MemoryGiB": 8}, "t2.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "t2.2xlarge": {"vCPUs": 8, "MemoryGiB": 32},
+    "t3.nano": {"vCPUs": 2, "MemoryGiB": 0.5}, "t3.micro": {"vCPUs": 2, "MemoryGiB": 1},
+    "t3.small": {"vCPUs": 2, "MemoryGiB": 2}, "t3.medium": {"vCPUs": 2, "MemoryGiB": 4},
+    "t3.large": {"vCPUs": 2, "MemoryGiB": 8}, "t3.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "t3.2xlarge": {"vCPUs": 8, "MemoryGiB": 32},
+    "t3a.nano": {"vCPUs": 2, "MemoryGiB": 0.5}, "t3a.micro": {"vCPUs": 2, "MemoryGiB": 1},
+    "t3a.small": {"vCPUs": 2, "MemoryGiB": 2}, "t3a.medium": {"vCPUs": 2, "MemoryGiB": 4},
+    "t3a.large": {"vCPUs": 2, "MemoryGiB": 8}, "t3a.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "t3a.2xlarge": {"vCPUs": 8, "MemoryGiB": 32},
+    "m5.large": {"vCPUs": 2, "MemoryGiB": 8}, "m5.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "m5.2xlarge": {"vCPUs": 8, "MemoryGiB": 32}, "m5.4xlarge": {"vCPUs": 16, "MemoryGiB": 64},
+    "m5.8xlarge": {"vCPUs": 32, "MemoryGiB": 128}, "m5.12xlarge": {"vCPUs": 48, "MemoryGiB": 192},
+    "m5.16xlarge": {"vCPUs": 64, "MemoryGiB": 256}, "m5.24xlarge": {"vCPUs": 96, "MemoryGiB": 384},
+    "m5a.large": {"vCPUs": 2, "MemoryGiB": 8}, "m5a.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "m5a.2xlarge": {"vCPUs": 8, "MemoryGiB": 32}, "m5a.4xlarge": {"vCPUs": 16, "MemoryGiB": 64},
+    "m6i.large": {"vCPUs": 2, "MemoryGiB": 8}, "m6i.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "m6i.2xlarge": {"vCPUs": 8, "MemoryGiB": 32}, "m6i.4xlarge": {"vCPUs": 16, "MemoryGiB": 64},
+    "m6a.large": {"vCPUs": 2, "MemoryGiB": 8}, "m6a.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "m6a.2xlarge": {"vCPUs": 8, "MemoryGiB": 32}, "m6a.4xlarge": {"vCPUs": 16, "MemoryGiB": 64},
+    "m7i.large": {"vCPUs": 2, "MemoryGiB": 8}, "m7i.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "c5.large": {"vCPUs": 2, "MemoryGiB": 4}, "c5.xlarge": {"vCPUs": 4, "MemoryGiB": 8},
+    "c5.2xlarge": {"vCPUs": 8, "MemoryGiB": 16}, "c5.4xlarge": {"vCPUs": 16, "MemoryGiB": 32},
+    "c5.9xlarge": {"vCPUs": 36, "MemoryGiB": 72}, "c5.18xlarge": {"vCPUs": 72, "MemoryGiB": 144},
+    "c6i.large": {"vCPUs": 2, "MemoryGiB": 4}, "c6i.xlarge": {"vCPUs": 4, "MemoryGiB": 8},
+    "c6i.2xlarge": {"vCPUs": 8, "MemoryGiB": 16},
+    "r5.large": {"vCPUs": 2, "MemoryGiB": 16}, "r5.xlarge": {"vCPUs": 4, "MemoryGiB": 32},
+    "r5.2xlarge": {"vCPUs": 8, "MemoryGiB": 64}, "r5.4xlarge": {"vCPUs": 16, "MemoryGiB": 128},
+    "r6i.large": {"vCPUs": 2, "MemoryGiB": 16}, "r6i.xlarge": {"vCPUs": 4, "MemoryGiB": 32},
+}
+
+RDS_SPECS_FALLBACK = {
+    "db.t2.micro": {"vCPUs": 1, "MemoryGiB": 1}, "db.t2.small": {"vCPUs": 1, "MemoryGiB": 2},
+    "db.t2.medium": {"vCPUs": 2, "MemoryGiB": 4}, "db.t2.large": {"vCPUs": 2, "MemoryGiB": 8},
+    "db.t3.micro": {"vCPUs": 2, "MemoryGiB": 1}, "db.t3.small": {"vCPUs": 2, "MemoryGiB": 2},
+    "db.t3.medium": {"vCPUs": 2, "MemoryGiB": 4}, "db.t3.large": {"vCPUs": 2, "MemoryGiB": 8},
+    "db.t3.xlarge": {"vCPUs": 4, "MemoryGiB": 16}, "db.t3.2xlarge": {"vCPUs": 8, "MemoryGiB": 32},
+    "db.t4g.micro": {"vCPUs": 2, "MemoryGiB": 1}, "db.t4g.small": {"vCPUs": 2, "MemoryGiB": 2},
+    "db.t4g.medium": {"vCPUs": 2, "MemoryGiB": 4}, "db.t4g.large": {"vCPUs": 2, "MemoryGiB": 8},
+    "db.m5.large": {"vCPUs": 2, "MemoryGiB": 8}, "db.m5.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "db.m5.2xlarge": {"vCPUs": 8, "MemoryGiB": 32}, "db.m5.4xlarge": {"vCPUs": 16, "MemoryGiB": 64},
+    "db.m6i.large": {"vCPUs": 2, "MemoryGiB": 8}, "db.m6i.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "db.m6g.large": {"vCPUs": 2, "MemoryGiB": 8}, "db.m6g.xlarge": {"vCPUs": 4, "MemoryGiB": 16},
+    "db.r5.large": {"vCPUs": 2, "MemoryGiB": 16}, "db.r5.xlarge": {"vCPUs": 4, "MemoryGiB": 32},
+    "db.r5.2xlarge": {"vCPUs": 8, "MemoryGiB": 64}, "db.r5.4xlarge": {"vCPUs": 16, "MemoryGiB": 128},
+    "db.r6i.large": {"vCPUs": 2, "MemoryGiB": 16}, "db.r6i.xlarge": {"vCPUs": 4, "MemoryGiB": 32},
+    "db.r6g.large": {"vCPUs": 2, "MemoryGiB": 16}, "db.r6g.xlarge": {"vCPUs": 4, "MemoryGiB": 32},
+}
+
 def call_bedrock(prompt: str, max_tokens: int = 500) -> str:
     """Call AWS Bedrock Nova Pro"""
     try:
@@ -50,9 +102,22 @@ class CostReportAgent:
         if not instance_types:
             return {}
 
+        # Try fallback first for known types
+        result = {}
+        unknown = []
+        for it in instance_types:
+            if it in EC2_SPECS_FALLBACK:
+                result[it] = EC2_SPECS_FALLBACK[it]
+            else:
+                unknown.append(it)
+
+        if not unknown:
+            logger.info(f"All EC2 specs resolved from fallback: {result}")
+            return result
+
         prompt = f"""You are an AWS EC2 specifications expert. Provide EXACT official AWS specifications.
 
-Instance types to lookup: {', '.join(instance_types)}
+Instance types to lookup: {', '.join(unknown)}
 
 Return ONLY valid JSON (no markdown, no text):
 {{
@@ -63,36 +128,48 @@ Return ONLY valid JSON (no markdown, no text):
 
 JSON:"""
 
-        try:
-            response = call_bedrock(prompt, max_tokens=600)
-            logger.info(f"EC2 specs raw response: {response[:200]}")
-            
-            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                ec2_specs = json.loads(json_str)
-                logger.info(f"Successfully parsed EC2 specs: {ec2_specs}")
+        for attempt in range(2):
+            try:
+                response = call_bedrock(prompt, max_tokens=600)
+                logger.info(f"EC2 specs raw response (attempt {attempt+1}): {response[:200]}")
                 
-                for it in instance_types:
-                    if it not in ec2_specs:
-                        ec2_specs[it] = {"vCPUs": None, "MemoryGiB": None}
-                return ec2_specs
-            else:
-                logger.warning("No JSON found in EC2 specs response")
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error for EC2 specs: {e}")
-        except Exception as e:
-            logger.error(f"Error extracting EC2 specs: {e}")
-        
-        return {it: {"vCPUs": None, "MemoryGiB": None} for it in instance_types}
+                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+                if json_match:
+                    ec2_specs = json.loads(json_match.group())
+                    logger.info(f"Successfully parsed EC2 specs: {ec2_specs}")
+                    for it in unknown:
+                        if it in ec2_specs and ec2_specs[it].get("vCPUs") is not None:
+                            result[it] = ec2_specs[it]
+                        elif it not in result:
+                            result[it] = {"vCPUs": None, "MemoryGiB": None}
+                    return result
+            except Exception as e:
+                logger.error(f"EC2 specs attempt {attempt+1} failed: {e}")
+
+        for it in unknown:
+            if it not in result:
+                result[it] = {"vCPUs": None, "MemoryGiB": None}
+        return result
 
     def extract_rds_specs(self, instance_types: List[str]) -> Dict:
         if not instance_types:
             return {}
 
+        result = {}
+        unknown = []
+        for it in instance_types:
+            if it in RDS_SPECS_FALLBACK:
+                result[it] = RDS_SPECS_FALLBACK[it]
+            else:
+                unknown.append(it)
+
+        if not unknown:
+            logger.info(f"All RDS specs resolved from fallback: {result}")
+            return result
+
         prompt = f"""You are an AWS RDS specifications expert. Provide EXACT official AWS RDS instance specifications.
 
-RDS instance types to lookup: {', '.join(instance_types)}
+RDS instance types to lookup: {', '.join(unknown)}
 
 Return ONLY valid JSON (no markdown, no text):
 {{
@@ -102,28 +179,28 @@ Return ONLY valid JSON (no markdown, no text):
 
 JSON:"""
 
-        try:
-            response = call_bedrock(prompt, max_tokens=600)
-            logger.info(f"RDS specs raw response: {response[:200]}")
-            
-            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group()
-                rds_specs = json.loads(json_str)
-                logger.info(f"Successfully parsed RDS specs: {rds_specs}")
+        for attempt in range(2):
+            try:
+                response = call_bedrock(prompt, max_tokens=600)
+                logger.info(f"RDS specs raw response (attempt {attempt+1}): {response[:200]}")
                 
-                for it in instance_types:
-                    if it not in rds_specs:
-                        rds_specs[it] = {"vCPUs": None, "MemoryGiB": None}
-                return rds_specs
-            else:
-                logger.warning("No JSON found in RDS specs response")
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error for RDS specs: {e}")
-        except Exception as e:
-            logger.error(f"Error extracting RDS specs: {e}")
-        
-        return {it: {"vCPUs": None, "MemoryGiB": None} for it in instance_types}
+                json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response, re.DOTALL)
+                if json_match:
+                    rds_specs = json.loads(json_match.group())
+                    logger.info(f"Successfully parsed RDS specs: {rds_specs}")
+                    for it in unknown:
+                        if it in rds_specs and rds_specs[it].get("vCPUs") is not None:
+                            result[it] = rds_specs[it]
+                        elif it not in result:
+                            result[it] = {"vCPUs": None, "MemoryGiB": None}
+                    return result
+            except Exception as e:
+                logger.error(f"RDS specs attempt {attempt+1} failed: {e}")
+
+        for it in unknown:
+            if it not in result:
+                result[it] = {"vCPUs": None, "MemoryGiB": None}
+        return result
 
     def extract_service_config_summary(self, service_name: str, configuration_summary: str) -> str:
         """Extract ALL configuration details from the configuration summary"""
