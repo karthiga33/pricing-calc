@@ -83,9 +83,29 @@ with col1:
     st.markdown("### 📁 Upload CSV File")
     uploaded_file = st.file_uploader("Choose your AWS cost CSV file", type=["csv"], label_visibility="collapsed")
     
+    # Auto-detect region from CSV data rows
+    region = ""
+    if uploaded_file:
+        try:
+            uploaded_file.seek(0)
+            data_df = pd.read_csv(uploaded_file, skiprows=7)
+            data_df.columns = data_df.columns.str.lower().str.strip()
+            region_col = next((c for c in data_df.columns if "region" in c.lower()), None)
+            if region_col:
+                unique_regions = data_df[region_col].dropna().astype(str).str.strip().unique()
+                unique_regions = [r for r in unique_regions if r and r != "nan"]
+                region = ", ".join(unique_regions)
+            uploaded_file.seek(0)
+        except Exception:
+            uploaded_file.seek(0)
+    
     st.markdown("### 👤 Customer Information")
     customer_name = st.text_input("Customer Name", placeholder="Enter customer name...")
-    region = st.text_input("AWS Region", value="US East (N. Virginia)")
+    
+    if region:
+        st.success(f"📍 Region auto-detected: **{region}**")
+    elif uploaded_file:
+        st.warning("⚠️ No region column found in CSV")
 
 live_rate = fetch_usd_to_inr()
 default_output = customer_name.strip().replace(' ', '_') if customer_name.strip() else ""
